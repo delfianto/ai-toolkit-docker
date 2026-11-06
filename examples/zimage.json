@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "assets": {
+    "weights": {
+      "path": "/models/diffusion_models/YOUR_CUSTOM_FILENAME.safetensors",
+      "family": "zimage",
+      "format": "diffusers"
+    },
+    "extras": {
+      "path": "/model-metadata/zimage",
+      "kind": "directory",
+      "required_files": [
+        "text_encoder/config.json",
+        "text_encoder/model.safetensors",
+        "tokenizer/tokenizer_config.json",
+        "vae/config.json",
+        "vae/diffusion_pytorch_model.safetensors",
+        "transformer/config.json"
+      ]
+    }
+  },
+  "views": {},
+  "bundles": {
+    "my-zimage": {
+      "profile": "zimage",
+      "components": {
+        "transformer": "@weights",
+        "extras": "@extras"
+      },
+      "model": {
+        "arch": "zimage",
+        "name_or_path": "@weights",
+        "extras_name_or_path": "@extras"
+      }
+    }
+  }
+}

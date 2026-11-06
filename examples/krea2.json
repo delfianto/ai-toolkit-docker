@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "assets": {
+    "krea-lustify": {
+      "path": "/models/diffusion_models/krea2-lustify-v10-raw.safetensors",
+      "family": "krea2",
+      "format": "comfy-int8-convrot"
+    },
+    "qwen3-vl-4b": {
+      "path": "/app/ai-toolkit/models/clip/qwen3-vl-4b-fp8-scaled.safetensors",
+      "family": "qwen3-vl-4b",
+      "format": "comfy-fp8-scaled"
+    },
+    "qwen-image-vae": {
+      "path": "/models/vae/qwen-image-vae-bf16.safetensors",
+      "family": "qwen-image-vae",
+      "format": "comfy-bf16"
+    },
+    "qwen3-vl-config": {
+      "cache_repo": "Qwen/Qwen3-VL-4B-Instruct",
+      "kind": "directory",
+      "required_files": [
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "preprocessor_config.json"
+      ]
+    },
+    "qwen-image-config": {
+      "cache_repo": "Qwen/Qwen-Image",
+      "kind": "directory",
+      "required_files": [
+        "vae/config.json"
+      ]
+    }
+  },
+  "profiles": {
+    "krea2-local": {
+      "arch": "krea2",
+      "required": [
+        "transformer",
+        "text_encoder",
+        "vae",
+        "text_config",
+        "vae_config"
+      ],
+      "formats": {
+        "transformer": [
+          "comfy-int8-convrot"
+        ],
+        "text_encoder": [
+          "comfy-fp8-scaled"
+        ],
+        "vae": [
+          "comfy-bf16"
+        ]
+      },
+      "families": {
+        "transformer": [
+          "krea2"
+        ],
+        "text_encoder": [
+          "qwen3-vl-4b"
+        ],
+        "vae": [
+          "qwen-image-vae"
+        ]
+      }
+    }
+  },
+  "repositories": {
+    "Qwen/Qwen3-VL-4B-Instruct": "@qwen3-vl-config",
+    "Qwen/Qwen-Image": "@qwen-image-config"
+  },
+  "component_bindings": [
+    {
+      "repo": "Qwen/Qwen3-VL-4B-Instruct",
+      "loader": "toolkit.models.v2.text_encoders.qwen3_vl.Qwen3VLTextEncoder",
+      "asset": "qwen3-vl-4b"
+    },
+    {
+      "repo": "Qwen/Qwen-Image",
+      "loader": "toolkit.models.v2.vae.qwen_image.QwenImageVAE",
+      "asset": "qwen-image-vae"
+    }
+  ],
+  "bundles": {
+    "krea-lustify": {
+      "profile": "krea2-local",
+      "description": "Krea 2 Lustify RAW with the existing FP8 Qwen3-VL encoder",
+      "components": {
+        "transformer": "@krea-lustify",
+        "text_encoder": "@qwen3-vl-4b",
+        "vae": "@qwen-image-vae",
+        "text_config": "@qwen3-vl-config",
+        "vae_config": "@qwen-image-config"
+      },
+      "repositories": [
+        "Qwen/Qwen3-VL-4B-Instruct",
+        "Qwen/Qwen-Image"
+      ],
+      "model": {
+        "arch": "krea2",
+        "name_or_path": "@krea-lustify",
+        "model_kwargs": {
+          "text_encoder_path": "Qwen/Qwen3-VL-4B-Instruct",
+          "vae_path": "Qwen/Qwen-Image"
+        }
+      }
+    }
+  }
+}

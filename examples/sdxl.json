@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "assets": {
+    "weights": {
+      "path": "/models/checkpoints/YOUR_CUSTOM_FILENAME.safetensors",
+      "family": "sdxl",
+      "format": "original"
+    },
+    "extras": {
+      "path": "/model-metadata/sdxl",
+      "kind": "directory",
+      "required_files": [
+        "model_index.json",
+        "tokenizer/tokenizer_config.json",
+        "tokenizer_2/tokenizer_config.json",
+        "text_encoder/config.json",
+        "text_encoder_2/config.json",
+        "vae/config.json",
+        "scheduler/scheduler_config.json"
+      ]
+    }
+  },
+  "views": {},
+  "bundles": {
+    "my-sdxl": {
+      "profile": "sdxl",
+      "components": {
+        "checkpoint": "@weights",
+        "extras": "@extras"
+      },
+      "model": {
+        "arch": "sdxl",
+        "name_or_path": "@weights",
+        "extras_name_or_path": "@extras"
+      },
+      "repositories": [
+        "stabilityai/stable-diffusion-xl-base-1.0"
+      ]
+    }
+  },
+  "repositories": {
+    "stabilityai/stable-diffusion-xl-base-1.0": "@extras"
+  }
+}

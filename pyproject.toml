@@ -1,0 +1,33 @@
+[project]
+name = "ai-toolkit-docker"
+version = "0.1.0"
+description = "Development environment for Toolkit captioning, MCP and local-model helpers"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "PyYAML>=6",
+  "mcp==2.3.0",
+  "Pillow>=10",
+  "numpy>=2,<3",
+  "typing_extensions>=4.4",
+  "opencv-python-headless>=4.10,<5",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+# Captioning also runs standalone on Python 3.11; retain typing_extensions.override.
+target-version = "py311"
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["src", "tools"]
+exclude = ["**/.venv", "**/__pycache__"]
+extraPaths = ["src"]

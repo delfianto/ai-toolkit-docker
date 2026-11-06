@@ -1,0 +1,38 @@
+paths:
+  model_dir: /path/to/gemma4-model
+  model_file: Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-Q4_K_M.gguf
+compute:
+  device: gpu1
+  gpu_layers: 999
+  flash_attention: true
+  mlock: false
+inference:
+  context_size: 4096
+  batch_size: 512
+  threads: 16
+server:
+  host: 127.0.0.1
+  port: 18085
+sampling:
+  temperature: 0.2
+  top_k: 64
+  top_p: 0.9
+  min_p: 0.05
+  repeat_penalty: 1.05
+  max_tokens: 192
+extra_args:
+- --cpu-moe
+- --mmproj
+- mmproj-Gemma4-26B-A4B-QAT-Uncensored-HauhauCS-Balanced-BF16.gguf
+- --jinja
+- --chat-template-kwargs
+- '{"enable_thinking":false}'
+- --parallel
+- '1'
+prompt:
+  system: |-
+    Write one concise, factual paragraph describing the image for image-model training.
+    Describe the visible subject, pose or action, clothing, framing, lighting and background.
+    Describe only visible details. Do not invent identities, relationships, ages or hidden actions.
+    Use natural language, not a list of tags. No preamble, headings, markdown or analysis.
+    Output only the caption, in English.

@@ -1,0 +1,3 @@
+Pillow>=10
+PyYAML>=6
+typing_extensions>=4.4

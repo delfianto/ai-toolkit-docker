@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "assets": {
+    "weights": {
+      "path": "/models/diffusion_models/YOUR_CUSTOM_FILENAME.safetensors",
+      "family": "flux",
+      "format": "diffusers"
+    },
+    "extras": {
+      "path": "/model-metadata/flux",
+      "kind": "directory",
+      "required_files": [
+        "model_index.json",
+        "tokenizer/tokenizer_config.json",
+        "tokenizer_2/tokenizer_config.json",
+        "text_encoder/config.json",
+        "text_encoder/model.safetensors",
+        "text_encoder_2/config.json",
+        "text_encoder_2/model.safetensors",
+        "vae/config.json",
+        "vae/diffusion_pytorch_model.safetensors",
+        "scheduler/scheduler_config.json",
+        "transformer/config.json"
+      ]
+    }
+  },
+  "views": {
+    "full": {
+      "base": "@extras",
+      "files": {
+        "transformer/diffusion_pytorch_model.safetensors": "@weights"
+      },
+      "required_files": [
+        "transformer/config.json",
+        "transformer/diffusion_pytorch_model.safetensors"
+      ]
+    }
+  },
+  "bundles": {
+    "my-flux": {
+      "profile": "flux",
+      "components": {
+        "transformer": "@weights",
+        "extras": "@extras"
+      },
+      "model": {
+        "arch": "flux",
+        "name_or_path": "@view:full",
+        "extras_name_or_path": "@extras"
+      }
+    }
+  }
+}

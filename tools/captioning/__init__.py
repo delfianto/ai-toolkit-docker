@@ -1,0 +1,1 @@
+"""Reusable vision captioning pipeline."""

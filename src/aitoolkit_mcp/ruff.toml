@@ -1,0 +1,6 @@
+[lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "TRY004"]
+
+[lint.isort]
+known-first-party = ["adapter", "server"]
+known-third-party = ["mcp"]
