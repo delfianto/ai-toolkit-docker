@@ -1,5 +1,8 @@
 name: Test, Build and Publish
 on:
+  schedule:
+    # 02:23 WIB (UTC+7); avoid the start-of-hour queue.
+    - cron: '23 19 * * *'
   pull_request:
   push:
     branches: [main]
@@ -7,7 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       base_image:
-        description: 'Optional upstream image tag or digest; defaults to the pinned Dockerfile base'
+        description: 'Upstream runtime base; defaults to ostris/aitoolkit:latest, resolved to a digest'
+        required: false
+        type: string
+      upstream_commit:
+        description: 'Optional full upstream commit SHA; defaults to upstream HEAD'
         required: false
         type: string
 permissions:
@@ -16,7 +23,52 @@ concurrency:
   group: ai-toolkit-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    outputs:
+      needs_build: ${{ steps.upstream.outputs.needs_build }}
+      upstream_commit: ${{ steps.upstream.outputs.upstream_commit }}
+      base_image: ${{ steps.upstream.outputs.base_image }}
+      base_digest: ${{ steps.upstream.outputs.base_digest }}
+      build_tag: ${{ steps.upstream.outputs.build_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'schedule'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve upstream HEAD and check the published build fingerprint
+        id: upstream
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          INPUT_BASE: ${{ inputs.base_image }}
+          INPUT_COMMIT: ${{ inputs.upstream_commit }}
+        run: |
+          python3 tools/upstream/check.py \
+            --image "ghcr.io/${IMAGE_OWNER,,}/ai-toolkit" \
+            --base-image "${INPUT_BASE:-ostris/aitoolkit:latest}" \
+            --upstream-commit "$INPUT_COMMIT"
+      - name: Report nightly decision
+        env:
+          NEEDS_BUILD: ${{ steps.upstream.outputs.needs_build }}
+          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.upstream_commit }}
+          BASE_IMAGE: ${{ steps.upstream.outputs.base_image }}
+        run: |
+          {
+            echo "### Upstream check"
+            echo "- Commit: \`$UPSTREAM_COMMIT\`"
+            echo "- Base: \`$BASE_IMAGE\`"
+            echo "- Build required: $NEEDS_BUILD"
+          } >> "$GITHUB_STEP_SUMMARY"
   test:
+    needs: resolve
+    if: needs.resolve.outputs.needs_build == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +79,7 @@ jobs:
       - run: uv run python -m unittest discover -s tests -v
       - run: uv run python -m unittest discover -s tools -t . -v
   image:
-    needs: test
+    needs: [resolve, test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -51,8 +103,12 @@ jobs:
           images: ghcr.io/${{ github.repository_owner }}/ai-toolkit
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ needs.resolve.outputs.build_tag }}
             type=sha
             type=semver,pattern={{version}}
+          labels: |
+            io.github.delfianto.ai-toolkit.upstream-revision=${{ needs.resolve.outputs.upstream_commit }}
+            io.github.delfianto.ai-toolkit.base-digest=${{ needs.resolve.outputs.base_digest }}
       - name: Build; publish only for trusted branch/tag/dispatch events
         uses: docker/build-push-action@v6
         with:
@@ -61,4 +117,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ inputs.base_image && format('BASE_IMAGE={0}', inputs.base_image) || '' }}
+          build-args: |
+            BASE_IMAGE=${{ needs.resolve.outputs.base_image }}
+            UPSTREAM_COMMIT=${{ needs.resolve.outputs.upstream_commit }}

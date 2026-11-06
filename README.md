@@ -91,23 +91,47 @@ isolated in `src/aitoolkit_models/compatibility.py` and retain upstream strict l
 
 ## Build and publish
 
+GitHub Actions checks upstream every night at **02:23 WIB** (`19:23 UTC`). It
+resolves `ostris/ai-toolkit` HEAD and `ostris/aitoolkit:latest` to an exact source
+commit and runtime-image digest. Releases and upstream tags are not required.
+
+A published `build-<fingerprint>` tag records the combination of upstream source,
+runtime base and this wrapper's commit. If that tag already exists, the scheduled
+run skips tests and image building. Source changes, base-image changes, wrapper
+changes, or a previously failed publication require a new build. Registry access
+errors fail the check rather than being mistaken for a missing image.
+
+Builds fetch the selected upstream commit, refresh Python requirements while
+preserving the base's CUDA accelerator versions, and reinstall/rebuild the UI.
+The image imports the common integration APIs before publication, so detected
+upstream API/dependency incompatibilities fail the build. Updating accelerator
+versions belongs to the runtime base; a requirement conflict fails explicitly.
+No dependencies or source updates happen when a deployed container starts.
+
+Successful default-branch builds publish `ghcr.io/delfianto/ai-toolkit:latest`, a
+fingerprint tag for rollback, and a wrapper commit tag. OCI labels record the
+upstream commit and base digest. GitHub Actions uses `GITHUB_TOKEN` with
+`packages:write`; the package must grant the source repository Actions write
+access. Pull requests test/build without publishing. Pushes to `main` and manual
+dispatches always build; a manual dispatch may override the base image or choose
+a full upstream commit SHA. The optional `v*` tags refer to this wrapper's own
+versions, not upstream releases.
+
+For a local build using the nightly selection logic:
+
 ```sh
-docker build -t ghcr.io/delfianto/ai-toolkit:latest .
-# Explicit upstream upgrade, followed by tests and component-load verification:
-docker build --build-arg BASE_IMAGE=ostris/aitoolkit:<tag-or-digest> \
+python3 tools/upstream/check.py --image ghcr.io/delfianto/ai-toolkit
+# Use the printed immutable base_image and upstream_commit:
+docker build --build-arg BASE_IMAGE='<base_image>' \
+  --build-arg UPSTREAM_COMMIT='<upstream_commit>' \
   -t ghcr.io/delfianto/ai-toolkit:latest .
 ```
 
-The default upstream base is pinned by digest in `Dockerfile`; runtime startup does
-not update application code or install dependencies. Application source and MCP
-requirements are baked into the image; no source bind mounts are needed.
-
-GitHub Actions tests every pull request and builds the image without publishing.
-Pushes to `main`, `v*` tags and manual dispatches publish to
-`ghcr.io/<owner>/ai-toolkit`, using the workflow's `GITHUB_TOKEN` with `packages:write`.
-Tags include `latest` on the default branch, a commit SHA tag, and release versions.
-A manual dispatch can choose an upstream image override. Configure package
-visibility/access in GitHub as appropriate for the deployment.
+A plain `docker build` retains the pinned Dockerfile base and its bundled source,
+which is useful for reproducing the baseline without resolving a new upstream
+commit. Application source and MCP requirements are baked into the image; no
+source bind mounts are needed. Publishing a nightly image does not restart a
+running deployment; use `composectl update ai-toolkit --json` when ready.
 
 ## Development
 
